@@ -1,4 +1,4 @@
-import xarray as xrndarray
+import xarray as xr
 import os
 import numpy as np
 import matplotlib.pyplot as plt 
@@ -50,7 +50,7 @@ def average_year_era(path_in: str,
                     var: str,
                     years: list) -> tuple [int, int]:
     '''
-    Calculates yearly average of ERA data pixelwise
+    Calculates height and width of ERA dataset and saves yearly average of ERA data to .nc file
 
     Args:
     path_in (str) path to source data
@@ -67,22 +67,20 @@ def average_year_era(path_in: str,
     var_era_full, var_era, _ = get_vars(var)
 
     # Era data
-    era = xr.open_mfdataset(os.path.join(path_in,'ERA/data_14_22/{}_*.nc'.format(var_era_full)))
+    era = xr.open_mfdataset(os.path.join(path_in,'era/data_14_22/{}_*.nc'.format(var_era_full)))
 
     # Extract ERA resolution for further regrid
     height = era.dims['lat']
     width = era.dims['lon']
-    new_lon = np.linspace(0.0, 360.0, width)
-    new_lat = np.linspace(-90.0, 90.0, height)
 
     # Go to 0...360 lon range
     era.coords['lon'] = era.coords['lon'] % 360
     era = era.sortby(era.lon)
-    var_era = list(era.keys())[0]
+
     for year in years:
 
         # Select by years
-        era_sel = era.sel(time=era.time.dt.year.isin([year]) )
+        era_sel = era.sel(time=str(year))
         # Define aggregation strategy based on variable
         if var_era=="t2m":
             
@@ -100,7 +98,9 @@ def average_year_era(path_in: str,
         
         era_year_clip = era_year.sel(lat=slice(BOTTOM, TOP), lon=slice(LEFT, RIGHT))
         # Save ERA average to file
-        era_year_clip.to_netcdf(os.path.join("/CMIPProximity/data_processed/", "yearly", "ERA_{}_{}.nc".format(var_era, year)))
+        era_year_clip.to_netcdf(os.path.join(path_out,
+                                        "yearly",
+                                        "ERA_{}_{}.nc".format(var_era, year)))
 
     return height, width
 
@@ -116,7 +116,7 @@ def average_cmip_model(
                         width: int = 1440
                         ):
         '''
-        Calculates yearly average of CMIP data pixelwise
+        Saves yearly average of CMIP data pixelwise to .nc file
 
         Args:
         models (list): models in ensemble
@@ -148,8 +148,7 @@ def average_cmip_model(
 
                 for year in years:
                         for model in tqdm(models):
-
-                                files = os.listdir(os.path.join(path_in, 'cmip'))
+                                files = os.listdir(os.path.join(path_in, "cmip"))
                                 files_model = [file for file in files if (model in file) &
                                                                         (ssp in file) &
                                                                         (var_cmip in file)]                       
@@ -157,7 +156,7 @@ def average_cmip_model(
                                 cmip = xr.open_mfdataset(files_xr)
                                 
                                 # Slice required year
-                                cmip_sel = cmip.sel(time=cmip.time.dt.year.isin([year]))
+                                cmip_sel = cmip.sel(time=str(year))
 
                                 if var_cmip=="tas":
                                         # Average over all time
@@ -178,7 +177,10 @@ def average_cmip_model(
                                 CMIP_new[model]=(('lat', 'lon'), cmip_up[var_cmip].data)
 
                         # Save XArratDataset average as a new file
-                        CMIP_new.to_netcdf(os.path.join(path_out, "yearly", ssp, 'CMIP_{}_{}.nc'.format(var_cmip, year)))
+                        CMIP_new.to_netcdf(os.path.join(path_out,
+                                                        "yearly",
+                                                        ssp,
+                                                        "CMIP_{}_{}.nc".format(var_cmip, year)))
                         print(year, "saved")
 
 
@@ -191,7 +193,7 @@ def average_ensemble(
                 years: list
                 ):
         '''
-        Calculates yearly average of CMIP ensemble
+        Saves yearly average of CMIP ensemble to .nc file
 
         Args:
         ensembles (dict[str, list]): dict with CMIP models ensembles
@@ -213,7 +215,10 @@ def average_ensemble(
                         mean = ds.to_array(dim='new').mean('new')
                         cmip_ens = mean.to_dataset(name = "mean")
                         cmip_ens = cmip_ens.expand_dims(time=[year])
-                        cmip_ens["mean"].to_netcdf(os.path.join(path, "yearly", ssp, 'CMIP_{}_{}_{}.nc'.format(ens_name, var_cmip, year)))
+                        cmip_ens["mean"].to_netcdf(os.path.join(path,
+                                                                "yearly",
+                                                                ssp,
+                                                                "CMIP_{}_{}_{}.nc".format(ens_name, var_cmip, year)))
 
 
 def average_era_years(
@@ -222,7 +227,7 @@ def average_era_years(
         years: list,
         ):
         '''
-        Calculates ERA average over few years
+        Saves ERA average over few years to .nc file
 
         Args:
         var (str): variable name
@@ -246,7 +251,9 @@ def average_era_years(
         data_avg = data.mean("time")
 
         # Save XArratDataset (model-ERA) difference as a new file
-        data_avg[var_era].to_netcdf(os.path.join(path, "{}_{}".format(years[0], years[-1]), "ERA_{}.nc".format(var_era)))
+        data_avg[var_era].to_netcdf(os.path.join(path,
+                                                "{}_{}".format(years[0], years[-1]),
+                                                "ERA_{}.nc".format(var_era)))
 
 
 def average_ensemble_years(
@@ -257,7 +264,7 @@ def average_ensemble_years(
         path: str
         ):
         '''
-        Calculates average of CMIP ensemble over few years
+        Saves average of CMIP ensemble over few years to .nc file
 
         Args:
         ens_name (str): ensembles dict key for the analysis
@@ -285,7 +292,11 @@ def average_ensemble_years(
                 data_avg = data.mean("time")
 
                 # Save XArratDataset as a new file
-                data_avg.to_netcdf(os.path.join(path, "{}_{}".format(years[0], years[-1]), ssp, "CMIP_{}_{}.nc".format(ens_name, var_cmip)))
+                data_avg.to_netcdf(os.path.join(path,
+                                                "{}_{}".format(years[0], years[-1]),
+                                                ssp,
+                                                "CMIP_{}_{}.nc".format(ens_name, var_cmip)))
+
 
 def average_cmip_years(
         ensembles,
@@ -296,7 +307,7 @@ def average_cmip_years(
         path
         ):
         '''
-        Calculates average of single CMIP model over few years
+        Saves average of single CMIP model over few years to .nc file
 
         Args:
         ensembles (dict[str, list]): dict with CMIP models ensembles
@@ -324,4 +335,7 @@ def average_cmip_years(
                         ds_mean = mean.to_dataset(name = model)
 
                         # Save XArratDataset (model-ERA) difference as a new file
-                        ds_mean[model].to_netcdf(os.path.join(path, "{}_{}".format(years[0], years[-1]), ssp, "CMIP_{}_{}.nc".format(var_cmip, model)))
+                        ds_mean[model].to_netcdf(os.path.join(path,
+                                                        "{}_{}".format(years[0], years[-1]),
+                                                        ssp,
+                                                        "CMIP_{}_{}.nc".format(var_cmip, model)))

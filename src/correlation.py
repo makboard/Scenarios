@@ -8,7 +8,7 @@ import matplotlib
 import geopandas
 import xarray as xr
 
-sys.path.append(os.path.join(".."))
+sys.path.append(os.path.join("../src"))
 from process import get_vars
 
 from shapely.ops import unary_union
@@ -66,15 +66,15 @@ def calc_mae(
     _, var_era, var_cmip = get_vars(var)
 
     models = ensembles[ens_name]
-    mae_scores = {region: {} for region in bound["NAME_1"]}
+    mae_scores = {region: {} for region in bound["district"]}
     
 
-    for i, region in enumerate(bound["NAME_1"]):
+    for i, region in enumerate(bound["district"]):
         for model in models:
             # Open datasets and culculate CMIP-ERA difference
-            model_data = xr.open_dataset(os.path.join(path_in, "2015_2022", ssp_cur,
+            model_data = xr.open_dataset(os.path.join(path_in, ssp_cur,
                                         'CMIP_{}_{}.nc'.format(var_cmip, model)))
-            era_data = xr.open_dataset(os.path.join(path_in, "2015_2022",
+            era_data = xr.open_dataset(os.path.join(path_in,
                                         'ERA_{}.nc'.format(var_era)))
             era_data = era_data.interp(lat=model_data.lat, lon=model_data.lon)
             diff = era_data[var_era] - model_data[model]
@@ -98,7 +98,9 @@ def calc_mae(
                 height=0.5,
                 color=color)
         plt.title("MAE for CMIP models) comparing to ERA, variable {}, {}".format(var_cmip, ssp_cur))
-        plt.savefig(os.path.join(path_out, 'mae_ensemble_{}_{}.png'.format(var_cmip, ssp_cur)))
+        plt.savefig(os.path.join(path_out,
+                                "pics",
+                                "mae_ensemble_{}_{}.png".format(var_cmip, ssp_cur)))
     
     return mae_scores
 
@@ -134,8 +136,13 @@ def plot_difference(
     _, var_era, var_cmip = get_vars(var)
 
     # Open saved .nc file
-    ens_avg = xr.open_dataset(os.path.join(path_in, "2015_2022", ssp_cur, 'CMIP_{}_{}.nc'.format(ens_name, var_cmip)))
-    era_avg = xr.open_dataset(os.path.join(path_in, "2015_2022", 'ERA_{}.nc'.format(var_era)))
+    ens_avg = xr.open_dataset(os.path.join(path_in,
+                                        "{}_{}".format(years[0], years[-1]),
+                                        ssp_cur,
+                                        'CMIP_{}_{}.nc'.format(ens_name, var_cmip)))
+    era_avg = xr.open_dataset(os.path.join(path_in,
+                                        "{}_{}".format(years[0], years[-1]),
+                                        'ERA_{}.nc'.format(var_era)))
 
     era_avg = era_avg.interp(lat=ens_avg.lat, lon=ens_avg.lon)
     diff = (era_avg [var_era] - ens_avg["mean"])
@@ -173,7 +180,9 @@ def plot_difference(
                                                                                                 years[-1],
                                                                                                 var_cmip,
                                                                                                 ssp_cur))
-    plt.savefig(os.path.join(path_out, 'diff_ensemble_{}_{}.png'.format(var_cmip, ssp_cur)))
+    plt.savefig(os.path.join(path_out,
+                            "pics",
+                            "diff_ensemble_{}_{}.png".format(var_cmip, ssp_cur)))
     plt.show()
 
 
@@ -208,8 +217,8 @@ def correlation_district(
 
     #____________________________Ensemble evaluation_________________________________________
     # Open saved .nc file
-    ens_avg = xr.open_dataset(os.path.join(path, "2015_2022", ssp_cur, 'CMIP_{}_{}.nc'.format(ens_name, var_cmip)))
-    era_avg = xr.open_dataset(os.path.join(path, "2015_2022", 'ERA_{}.nc'.format(var_era)))
+    ens_avg = xr.open_dataset(os.path.join(path, ssp_cur, 'CMIP_{}_{}.nc'.format(ens_name, var_cmip)))
+    era_avg = xr.open_dataset(os.path.join(path, 'ERA_{}.nc'.format(var_era)))
 
     era_avg = era_avg.interp(lat=ens_avg.lat, lon=ens_avg.lon)
     ens_differ = xr.combine_by_coords([ens_avg, era_avg])
@@ -235,7 +244,7 @@ def correlation_district(
     #____________________________Models evaluation______________________________________________
     # Loop over models
     for model in models:
-        model_avg = xr.open_dataset(os.path.join(path, "2015_2022", ssp_cur, 'CMIP_{}_{}.nc'.format(var_cmip, model)))
+        model_avg = xr.open_dataset(os.path.join(path, ssp_cur, 'CMIP_{}_{}.nc'.format(var_cmip, model)))
         model_differ = xr.combine_by_coords([model_avg, era_avg])
         model_differ = model_differ.rio.set_spatial_dims('lon', 'lat', inplace=True)
         model_differ.rio.write_crs("epsg:4326", inplace=True)
@@ -286,8 +295,8 @@ def correlation_region(
 
     #____________________________Ensemble evaluation_________________________________________
     # Open saved .nc file
-    ens_avg = xr.open_dataset(os.path.join(path, "2015_2022", ssp_cur, 'CMIP_{}_{}.nc'.format(ens_name, var_cmip)))
-    era_avg = xr.open_dataset(os.path.join(path, "2015_2022", 'ERA_{}.nc'.format(var_era)))
+    ens_avg = xr.open_dataset(os.path.join(path, ssp_cur, 'CMIP_{}_{}.nc'.format(ens_name, var_cmip)))
+    era_avg = xr.open_dataset(os.path.join(path, 'ERA_{}.nc'.format(var_era)))
 
     era_avg = era_avg.interp(lat=ens_avg.lat, lon=ens_avg.lon)
     ens_differ = xr.combine_by_coords([ens_avg, era_avg])
@@ -307,7 +316,7 @@ def correlation_region(
     #____________________________Models evaluation______________________________________________
     # Loop over models
     for model in models:
-        model_avg = xr.open_dataset(os.path.join(path, "2015_2022", ssp_cur, 'CMIP_{}_{}.nc'.format(var_cmip, model)))
+        model_avg = xr.open_dataset(os.path.join(path, ssp_cur, 'CMIP_{}_{}.nc'.format(var_cmip, model)))
         model_differ = xr.combine_by_coords([model_avg, era_avg])
         model_differ = model_differ.rio.set_spatial_dims('lon', 'lat', inplace=True)
         model_differ.rio.write_crs("epsg:4326", inplace=True)
@@ -365,7 +374,7 @@ def plot_corr(
             corr = correlation_district(
                                         models,
                                         ens_name,
-                                        path_in,
+                                        os.path.join(path_in, "{}_{}".format(years[0], years[-1])),
                                         var_cmip,
                                         var_era,
                                         ssp,
@@ -376,7 +385,7 @@ def plot_corr(
             corr = correlation_region(
                                     models,
                                     ens_name,
-                                    path_in,
+                                    os.path.join(path_in, "{}_{}".format(years[0], years[-1])),
                                     var_cmip,
                                     var_era,
                                     ssp,
@@ -402,7 +411,9 @@ def plot_corr(
                                                                                                         years[-1],
                                                                                                         var_cmip,
                                                                                                         ssp))
-        plt.savefig(os.path.join(path_out, '{}_corr_ensemble_{}_{}.png'.format(adm_type, var_cmip, ssp)))
+        plt.savefig(os.path.join(path_out,
+                                "pics",
+                                "{}_corr_ensemble_{}_{}.png".format(adm_type, var_cmip, ssp)))
     return corr_dict
 
 
@@ -410,7 +421,8 @@ def optimal_ensemble(
                     ensembles: dict[str, list],
                     ens_name: str,
                     corr_regions: dict[str, dict],
-                    ssps: list
+                    ssps: list,
+                    num_models: int
 ):
     '''
     Collects optimal model ensemble for each region of RF 
@@ -420,13 +432,12 @@ def optimal_ensemble(
     ens_name (str): ensemble name
     corr_regions (dict[str, dict]): dictionary with correlations for each var-ssp-region
     ssps (list): used scenarios
+    num_models (int): minimum number of models in ensemble
 
     Returns:
     best_models (dict[str, list]): dictionary with model ensemble for each region
     ''' 
-    # Desired minimum number of modelsin ensemble
-    num_models = 5
-    
+
     # Variables used (CMIP spelling)
     var_list = [
         "tas",
@@ -567,5 +578,6 @@ def optimal_ensemble(
             regions.drop(labels = [index], inplace = True)
             regions_success.append(region)
     print("Criterion 1 achieved for regions {}".format(regions_success))
+    best_models = {k:v for k,v in best_models.items()}
 
     return best_models
