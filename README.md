@@ -1,10 +1,11 @@
 # Scenarios
-This repository contains machine learning models for CMIP6 models ranking for according to their correlation with ERA5 data. The selection works either at level of climatically relevant areas (close to federal districts) or at the level of administrative devesion of Russian Federation.\
+This repository contains machine learning models for CMIP6 models ranking for according to their correlation with ERA5 data.\
+The comparison works either at level of climatically relevant areas (close to federal districts) or at the level of administrative division of Russian Federation.\
 It accounts 16 CMIP6 models and 4 Shared Socioeconomic Pathways in total.
 
 ## Dependencies
 
-* Dependencies are listed in requirements.txt file.
+Dependencies are listed in requirements.txt file.
 
 ## Data
 
