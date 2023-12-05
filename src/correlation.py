@@ -8,6 +8,7 @@ import matplotlib
 import geopandas
 import xarray as xr
 
+from tqdm import tqdm
 sys.path.append(os.path.join("../src"))
 from process import get_vars
 
@@ -264,6 +265,56 @@ def correlation_district(
             corr.loc[index+1, model] = xr.corr(clipped[var_era], clipped[model]).data.item()
 
     return corr
+
+
+def plot_region(
+    corr_regions: dict[str, dict],
+    models: list,
+    gdf_region: geopandas.geodataframe.GeoDataFrame,
+    vars: list,
+    ssps: list,
+    path: str
+):
+    '''
+    Plots CMIP-ERA data correlations region-wise
+
+    Args:
+    corr_regions (dict[str, dict]): correlations
+    models (list): list of CMIP6 models
+    gdf_region (geopandas.DataFrame): regions with their geometries
+    vars (list): variables
+    ssps (list): used scenarios
+    path (str) path to save pics
+    '''  
+
+    gdf_region.set_index("NAME_1", drop=True, inplace=True)
+
+    for var in vars:
+        for ssp in ssps:
+            print(ssp)
+            data = corr_regions[var][ssp].copy()
+            data.set_index("NAME_1", drop=True, inplace=True)
+            data.iloc[:,:-2] = data.iloc[:,:-2].astype(float)
+            data.loc[:, "geometry"] = gdf_region["geometry"]
+
+            df = geopandas.GeoDataFrame(
+                    data,
+                    crs="EPSG:4326"
+                        )
+            df = df.to_crs('ESRI:102027')
+
+            for model in tqdm(models):
+                fig, ax = plt.subplots(figsize=(20, 10))
+                im = df.plot(ax = ax,
+                            column=model,
+                            legend=True,
+                            vmin=0, vmax=1,
+                        )
+                plt.axis('off')
+
+                plt.tight_layout()
+                plt.savefig(os.path.join(path, "pics", "models", 'regions_corr_{}_{}_{}.png'.format(model, var, ssp)))
+                fig.set_visible(not fig.get_visible())
 
 
 def correlation_region(
