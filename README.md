@@ -24,7 +24,7 @@ Districts division withing Russian Federation performed by hand and stored in `.
 The project directory structure should be organized as follows (tree depth is limited by 2):
 ``` bash
 .
-|-- Dockerfile
+|
 |-- README.md
 |-- data
 |   |-- boundary
@@ -35,9 +35,10 @@ The project directory structure should be organized as follows (tree depth is li
 |   |-- 2015_2022
 |   `-- yearly
 |-- environments
-|   `-- requirements.txt
-|-- notebooks
-|   `-- RCP_analysis.ipynb
+|   |-- Dockerfile
+|   `-- environment.yml
+|-- notebook
+|   `-- analysis.ipynb
 |-- results
 |   |-- csv
 |   `-- pics
@@ -51,7 +52,23 @@ The project directory structure should be organized as follows (tree depth is li
 To set up the project using Docker, follow these steps:
 
 * Build the Docker image: `docker build -t rcp .`
-* Run the Docker container: `docker run -it  -v  <CODE FOLDER>:/rcp -v <DATA FOLDER>:/rcp/data -m 128000m  --cpus=4  -w="/rcp" rcp`
-
+* Run the Docker container:
+``` bash
+docker run -it --name <CONTAINER NAME>
+   -v <SOURCE DATA FOLDER>:/RCP/data
+   -m 128000m --cpus=16 --gpus '"device=0,1"'
+   --ipc=host
+   -w="/RCP"
+   rcp
+```
+As an example:
+``` bash
+docker run -it --name RCP_cont
+   -v /mnt/public-datasets/taniushkina/RCP_scenarios/data:/RCP/data
+   -m 128000m --cpus=16 --gpus '"device=0,1"'
+   --ipc=host
+   -w="/RCP"
+   rcp
+```
 ## Executing program
 The program consists of several steps, all of them are displayed in the `notebook/analysis.ipynb` notebook.
